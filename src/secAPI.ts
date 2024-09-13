@@ -4,6 +4,7 @@ import { AxiosInstance } from 'axios';
 import { createHttpClient, getHeaders } from './config';
 import { XMLParser } from 'fast-xml-parser';
 import { padCik } from './utils';
+import { extractTables } from './parsers/tableParser';
 
 export interface CompanyTicker {
   cik: number;
@@ -162,6 +163,52 @@ export class SECClient {
       headers: getHeaders('data.sec.gov', this.userAgent),
     });
     return response.data;
+  }
+
+  /**
+   * Fetches the SEC filing content from a given URL.
+   * @param url - The URL of the SEC filing.
+   * @returns The raw HTML content of the filing.
+   */
+  public async fetchFiling(url: string): Promise<string> {
+    try {
+      const response = await this.http.get<string>(url, {
+        headers: {
+          'User-Agent': this.userAgent,
+          'Accept-Encoding': 'gzip, deflate',
+          Host: 'www.sec.gov',
+        },
+      });
+      return response.data; // The raw HTML of the SEC filing
+    } catch (error) {
+      throw new Error(
+        `Failed to fetch SEC filing from URL: ${url}. Error: ${error}`,
+      );
+    }
+  }
+
+  /**
+   * Extracts tables from a given SEC filing URL.
+   * @param url - The URL of the SEC filing.
+   * @returns An array of tables extracted from the filing.
+   */
+  public async extractTablesFromFilingUrl(
+    url: string,
+  ): Promise<Array<Array<Array<string>>>> {
+    const filingContent = await this.fetchFiling(url); // Fetch the raw HTML content
+    const tables = extractTables(filingContent); // Extract tables using the parsing function
+    return tables;
+  }
+
+  /**
+   * Extracts tables from the provided HTML content of an SEC filing.
+   * @param filingContent - The raw HTML content of the SEC filing.
+   * @returns An array of tables extracted from the content.
+   */
+  public extractTablesFromContent(
+    filingContent: string,
+  ): Array<Array<Array<string>>> {
+    return extractTables(filingContent); // Extract tables from the provided HTML content
   }
 
   /**

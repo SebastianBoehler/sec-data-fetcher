@@ -76,6 +76,36 @@ new SECClient(options: SECClientOptions)
 - **getCompanyFacts(cik: string):** Promise<any>
 - **getObjectFromString(content:** string): FilingObject
 - **getObjectFromUrl(url: string):** Promise<FilingObject>
+- **fetchFiling(url: string):** Promise<string>  
+  Fetches the raw HTML content of an SEC filing from the provided URL.
+- **extractTablesFromFilingUrl(url: string):** Promise<Array<Array<Array<string>>>>  
+  Fetches the filing content from a URL and extracts tables from the filing.
+- **extractTablesFromContent(filingContent: string):** Array<Array<Array<string>>>  
+  Extracts tables from the provided raw HTML content of an SEC filing.
+
+### Extract Tables from SEC Filings
+
+The package provides two ways to extract tables from SEC filings:
+
+1. **Extract from a URL**: Fetch and extract tables directly from an SEC filing URL.
+2. **Extract from provided HTML content**: Extract tables from the provided HTML content when you already have the filing data.
+
+```typescript
+import { SECClient } from 'sec-data-fetcher';
+
+const secClient = new SECClient({
+  userAgent: 'Your Company <your-email@example.com>',
+});
+
+// Extract tables from an SEC filing URL
+const tablesFromUrl = await secClient.extractTablesFromFilingUrl(
+  'https://www.sec.gov/...',
+);
+
+// Extract tables from provided HTML content
+const filingContent = '<html>...</html>';
+const tablesFromContent = secClient.extractTablesFromContent(filingContent);
+```
 
 ## Notes
 

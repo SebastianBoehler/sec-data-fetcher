@@ -32,4 +32,10 @@ const secClient = new SECClient({
       console.log('Filing Object:', filingObject);
     }
   }
+
+  // Extract tables from a URL
+  const filingUrl =
+    'https://www.sec.gov/Archives/edgar/data/0000320193/0000320193-21-000010.txt';
+  const tablesFromUrl = await secClient.extractTablesFromFilingUrl(filingUrl);
+  //console.log('Extracted Tables from URL:', tablesFromUrl);
 })();
