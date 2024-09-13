@@ -58,9 +58,9 @@ const secClient = new SECClient({
 })();
 ```
 
-## API Reference
+# API Reference
 
-# SECClient
+## SECClient
 
 Constructor
 
@@ -68,14 +68,14 @@ Constructor
 new SECClient(options: SECClientOptions)
 ```
 
-# Methods
+## Methods
 
-- \*\*cikLookup(ticker: string): Promise<string | null>
-- \*\*getCompanyData(cik: string): Promise<any>
-- \*\*getReports(cik: string, after?: Date, forms?: string[]): Promise<Filing[]>
-- \*\*getCompanyFacts(cik: string): Promise<any>
-- \*\*getObjectFromString(content: string): FilingObject
-- \*\*getObjectFromUrl(url: string): Promise<FilingObject>
+- **cikLookup(ticker: string):** Promise<string | null>
+- **getCompanyData(cik: string):** Promise<any>
+- **getReports(cik: string, after?:** Date, forms?: string[]): Promise<Filing[]>
+- **getCompanyFacts(cik: string):** Promise<any>
+- **getObjectFromString(content:** string): FilingObject
+- **getObjectFromUrl(url: string):** Promise<FilingObject>
 
 ## Notes
 
@@ -91,6 +91,6 @@ Contributions are welcome! Please open an issue or submit a pull request on GitH
 
 MIT License. See the LICENSE file for details.
 
-Disclaimer
+## Disclaimer
 
 This library is provided as-is and is not affiliated with or endorsed by the U.S. Securities and Exchange Commission. Use this library responsibly and in compliance with the SEC’s Terms of Use.
