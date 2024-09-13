@@ -1,5 +1,3 @@
-import { ESLint } from 'eslint';
-
 export default [
   {
     ignores: ['node_modules/**', 'dist/**'],
