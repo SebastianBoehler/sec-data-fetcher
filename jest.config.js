@@ -1,6 +1,4 @@
-// jest.config.js
-
-module.exports = {
+export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
 };
