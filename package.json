@@ -1,6 +1,6 @@
 {
   "name": "sec-data-fetcher",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "An npm library to fetch SEC data from all supported endpoints with rate limiting.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

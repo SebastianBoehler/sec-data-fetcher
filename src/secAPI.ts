@@ -5,16 +5,14 @@ import { createHttpClient, getHeaders } from './config';
 import { XMLParser } from 'fast-xml-parser';
 import { padCik } from './utils';
 
-// Interfaces
-
-interface CompanyTicker {
+export interface CompanyTicker {
   cik: number;
   name: string;
   ticker: string;
   exchange: string;
 }
 
-interface Filing {
+export interface Filing {
   form: string;
   cik: string;
   primaryDocument: string;
@@ -26,11 +24,11 @@ interface Filing {
   content?: string;
 }
 
-interface FilingObject {
+export interface FilingObject {
   [key: string]: any;
 }
 
-interface SECClientOptions {
+export interface SECClientOptions {
   userAgent: string;
   maxRequestsPerSecond?: number;
 }
