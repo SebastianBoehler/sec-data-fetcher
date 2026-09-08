@@ -1,0 +1,15 @@
+name: Feature request
+description: Propose a concrete SEC filing or financial-data workflow.
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: What are you trying to do?
+      description: Describe the workflow and what the current API cannot do.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Example inputs and expected output
+      description: Public SEC URLs, accessions, or API documentation help define a testable change.

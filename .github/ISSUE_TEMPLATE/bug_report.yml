@@ -1,0 +1,23 @@
+name: Bug report
+description: Report a reproducible fetching, parsing or packaging issue.
+body:
+  - type: input
+    id: versions
+    attributes:
+      label: Package version, Node.js version and OS
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include a public SEC URL/accession if relevant. Remove secrets and personal contact information.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: Include the HTTP status or error message, and expected parsed output if relevant.
+    validations:
+      required: true
