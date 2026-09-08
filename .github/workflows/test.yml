@@ -10,19 +10,41 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  check:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+  test:
     strategy:
       fail-fast: false
       matrix:
-        node: [22, 24, 26]
+        include:
+          - os: ubuntu-latest
+            rust: stable
+          - os: macos-latest
+            rust: stable
+          - os: windows-latest
+            rust: stable
+          - os: ubuntu-latest
+            rust: '1.88.0'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-node@v7.0.0
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          node-version: ${{ matrix.node }}
-          cache: npm
-      - run: npm ci
-      - run: npm run check
-      - run: npm audit --omit=dev --audit-level=high
+          toolchain: ${{ matrix.rust }}
+      - uses: Swatinem/rust-cache@63fed3e2fecf6f7b51dc6f043341b79ef82a9ae7 # v2.9.2
+      - run: cargo test --locked
+      - run: cargo package --locked
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@63fed3e2fecf6f7b51dc6f043341b79ef82a9ae7 # v2.9.2
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - uses: taiki-e/install-action@d438492cf8a250514fa2d34b30bc3c0dc37c65ff # v2
+        with:
+          tool: cargo-audit
+      - run: cargo audit

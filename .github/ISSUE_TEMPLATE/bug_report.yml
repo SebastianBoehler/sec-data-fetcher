@@ -4,7 +4,7 @@ body:
   - type: input
     id: versions
     attributes:
-      label: Package version, Node.js version and OS
+      label: Package version, Rust version and OS
     validations:
       required: true
   - type: textarea

@@ -1,26 +1,6 @@
-# Node modules
-node_modules/
-
-# Build outputs
-dist/
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# MacOS files
+/target/
 .DS_Store
-
-# TypeScript
-*.tsbuildinfo
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
-# Package verification scratch space and release tarballs
-.package-test-*/
 *.tgz
+# Local artifacts from the previously released npm version
+/node_modules/
+/dist/

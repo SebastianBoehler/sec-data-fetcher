@@ -1,145 +1,122 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/SebastianBoehler/sec-data-fetcher/main/docs/assets/banner.svg" alt="SEC Data Fetcher — EDGAR filings, company facts and tables for TypeScript and Node.js" width="100%" />
+  <img src="https://raw.githubusercontent.com/SebastianBoehler/sec-data-fetcher/main/docs/assets/banner.svg" alt="SEC Data Fetcher — EDGAR filings and financial data for Rust" width="100%" />
 </p>
 
 <p align="center">
   <a href="https://github.com/SebastianBoehler/sec-data-fetcher/actions/workflows/test.yml"><img src="https://github.com/SebastianBoehler/sec-data-fetcher/actions/workflows/test.yml/badge.svg" alt="CI" /></a>
-  <a href="https://www.npmjs.com/package/sec-data-fetcher"><img src="https://img.shields.io/npm/v/sec-data-fetcher" alt="npm version" /></a>
-  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/node-%3E%3D22-417e38" alt="Node.js 22 or newer" /></a>
-  <a href="https://github.com/SebastianBoehler/sec-data-fetcher/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" /></a>
+  <a href="https://github.com/SebastianBoehler/sec-data-fetcher/releases"><img src="https://img.shields.io/github/v/release/SebastianBoehler/sec-data-fetcher" alt="Release" /></a>
+  <img src="https://img.shields.io/badge/Rust-1.88%2B-orange" alt="Rust 1.88 or newer" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" /></a>
 </p>
 
-A **SEC EDGAR filings and financial-data toolkit** for Node.js. Find companies by ticker, retrieve submission history and standardized XBRL facts, download filings, parse XML and extract HTML tables. Use it in research scripts, financial-data pipelines and backend applications.
+An async **Rust library and CLI for SEC EDGAR filings and financial data**. Look up companies, retrieve submissions and standardized XBRL facts, download individual filings, extract HTML tables and parse XML. Built for research scripts and financial-data pipelines, with a native executable and no Node.js runtime.
 
-No API key or paid service is required for the supported public SEC endpoints. Supply your application's name and a real contact email in the User-Agent.
+Public SEC endpoints need no API key. Identify your application with a real contact email. Version 3 replaces the previous TypeScript implementation; the old npm package remains at version 2 and does not contain the Rust implementation.
 
 ## Install
 
-```sh
-npm install sec-data-fetcher
-```
-
-Requires **Node.js 22+**. CI tests Node 22, 24 and 26, including CommonJS, ESM and TypeScript consumers installed from the npm tarball. Upgrading from 1.x? Read the [migration notes](https://github.com/SebastianBoehler/sec-data-fetcher/blob/main/CHANGELOG.md).
-
-## From ticker to filings
-
-Save as `filings.mjs`:
-
-```js
-import { SECClient } from 'sec-data-fetcher';
-
-const userAgent = process.env.SEC_USER_AGENT;
-if (!userAgent)
-  throw new Error('Set SEC_USER_AGENT to your app name and contact email.');
-
-const client = new SECClient({ userAgent, maxRequestsPerSecond: 2 });
-const cik = await client.cikLookup('AAPL');
-if (!cik) throw new Error('Ticker not found.');
-
-const company = await client.getCompanyData(cik);
-const recent = company.filings.recent;
-console.log(company.name, company.cik);
-console.table(
-  recent.form.slice(0, 5).map((form, index) => ({
-    form,
-    filed: recent.filingDate[index],
-    accession: recent.accessionNumber[index],
-  })),
-);
-```
+Requires Rust 1.88+ and a native C/C++ build toolchain for the TLS dependency. Install from the repository:
 
 ```sh
-SEC_USER_AGENT='YourApp you@your-domain.com' node filings.mjs
+cargo install --git https://github.com/SebastianBoehler/sec-data-fetcher --locked
+sec-data-fetcher --help
 ```
 
-Use your own contact information. This example fetches metadata only; it does not download every filing. In CommonJS, use `const { SECClient } = require('sec-data-fetcher')` inside your script.
+For reproducible installations, add `--rev <commit>` using a tested release commit. This project is not yet published on crates.io.
 
-## Financial facts
-
-Using the same `client` and `cik`:
-
-```ts
-const facts = await client.getCompanyFacts(cik);
-const assets = facts.facts['us-gaap']?.Assets?.units.USD;
-if (!assets)
-  throw new Error('No US-GAAP Assets facts in USD for this company.');
-console.table(
-  assets.slice(-5).map(({ val, end, filed, form, accn }) => ({
-    value: val,
-    periodEnd: end,
-    filed,
-    form,
-    accession: accn,
-  })),
-);
-```
-
-These are the final five entries in the SEC response, **not a deduplicated time series**. The same reporting period can appear in multiple filings or amendments. Keep units, period dates and accession numbers when selecting facts. See the [SEC XBRL API documentation](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) for coverage and context.
-
-## Download a filing and extract tables
-
-```ts
-const index = recent.form.findIndex(
-  (form) => form === '10-K' || form === '10-Q',
-);
-if (index < 0) throw new Error('No recent annual or quarterly report.');
-const accession = recent.accessionNumber[index].replaceAll('-', '');
-const url = `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${accession}/${recent.primaryDocument[index]}`;
-
-const html = await client.fetchFiling(url);
-const tables = client.extractTablesFromContent(html);
-console.log(`${tables.length} tables extracted from ${url}`);
-```
-
-Tables are arrays of rows of cell text (`string[][][]`). Nested tables are returned separately; a parent cell's text still includes its nested content. Rowspan/colspan, financial units and statement semantics are not reconstructed. For XML documents, `getObjectFromString(xml)` returns a generic XML object; it is not an iXBRL or SGML financial-statement parser.
-
-## API
-
-```ts
-const client = new SECClient({
-  userAgent: 'YourApp you@your-domain.com', // required; use your real contact
-  maxRequestsPerSecond: 2, // optional; integer 1–10, default 10
-});
-```
-
-| Method                            | Result                        | Behavior                                                                     |
-| --------------------------------- | ----------------------------- | ---------------------------------------------------------------------------- |
-| `cikLookup(ticker)`               | `Promise<string \| null>`     | Case-insensitive ticker lookup; padded CIK or `null`.                        |
-| `getCompanyData(cik)`             | `Promise<CompanySubmissions>` | SEC submissions metadata with a normalized string CIK.                       |
-| `getCompanyFacts(cik)`            | `Promise<CompanyFacts>`       | SEC XBRL company facts; retains SEC's numeric CIK.                           |
-| `getReports(cik, after?, forms?)` | `Promise<Filing[]>`           | Filters recent filings and downloads every matching document into `content`. |
-| `fetchFiling(url)`                | `Promise<string>`             | Raw document text.                                                           |
-| `getObjectFromString(xml)`        | `FilingObject`                | Generic XML parsing; document-defined entities are not expanded.             |
-| `getObjectFromUrl(url)`           | `Promise<FilingObject>`       | Downloads text and applies the XML parser.                                   |
-| `extractTablesFromContent(html)`  | `string[][][]`                | Extracts HTML table cell text.                                               |
-| `extractTablesFromFilingUrl(url)` | `Promise<string[][][]>`       | Downloads a document and extracts its tables.                                |
-
-CIKs are strings containing 1–10 digits; leading zeros are added automatically. Core response types are exported from `sec-data-fetcher`. Additional submissions fields are preserved as `unknown`.
-
-`getReports` defaults to `after = new Date('2024-01-01')` and forms `['10-Q', '10-K', '8-K']` for compatibility. The date comparison is strictly **after**. Pass a narrow date range and explicit forms, including amendments such as `10-K/A` if needed. It reads only `filings.recent`; it does not traverse historical files in `filings.files`. All matching content is held in memory. For larger workloads, use metadata and download individual documents as needed.
-
-## SEC access and errors
-
-- Run on a Node.js backend. SEC data APIs do not support browser CORS.
-- The SEC limit is **10 requests/second per user across all machines**. The library's limiter is per client instance; share a client and coordinate budgets across workers.
-- Requests have a 30-second timeout. HTTP errors propagate with Axios status information. There are no automatic retries or alternate data sources.
-- `403` may reflect User-Agent, network/IP or SEC access restrictions; `429` means the request rate needs attention. A passed CI run does not guarantee access from every deployment network.
-- Invalid CIKs, empty User-Agents and rates outside 1–10 fail before requests. Parsing HTML as generic XML does not produce reliable financial statements.
-
-See the SEC's [fair-access guidance](https://www.sec.gov/about/developer-resources). For full-history bulk ingestion, use the SEC's official bulk archives instead of issuing one request per company.
-
-## Contribute and maintain
-
-Bug reports with a public accession number or reproducible fixture are especially useful. See [CONTRIBUTING.md](https://github.com/SebastianBoehler/sec-data-fetcher/blob/main/CONTRIBUTING.md), the [security policy](https://github.com/SebastianBoehler/sec-data-fetcher/blob/main/SECURITY.md) and [changelog](https://github.com/SebastianBoehler/sec-data-fetcher/blob/main/CHANGELOG.md).
+## CLI
 
 ```sh
-npm ci
-npm run check      # lint, deterministic tests, packed-package consumer checks
-SEC_USER_AGENT='YourApp you@your-domain.com' npm run test:live
+export SEC_USER_AGENT='YourApp you@your-domain.com'
+sec-data-fetcher lookup AAPL
+sec-data-fetcher submissions 320193 > submissions.json
+sec-data-fetcher facts 320193 > facts.json
+sec-data-fetcher reports 320193 --after 2026-01-01 --forms 10-K,10-Q
 ```
 
-The live smoke makes four requests: ticker mapping, submissions, company facts and one annual/quarterly filing. It checks table extraction and reports time/memory for that run. It is separate from the deterministic PR checks because SEC access can vary by network. Dependabot proposes dependency updates; a weekly live workflow checks upstream compatibility.
+`reports` returns metadata only. The date comparison is strictly **after**, and amendments must be requested explicitly (for example `10-K/A`). It reads `filings.recent`; historical shards in `filings.files` are exposed as metadata but are not traversed automatically.
+
+Download a document using its public SEC archive URL, or parse files already on disk:
+
+```sh
+sec-data-fetcher fetch "$SEC_FILING_URL" > filing.html
+sec-data-fetcher tables --file filing.html > tables.json
+sec-data-fetcher xml --file filing.xml > document.json
+```
+
+`tables` and `xml` also accept `--url`. Local parsing needs no User-Agent and makes no requests. Structured results go to stdout as JSON; errors go to stderr with a nonzero exit status. `lookup` returns a padded CIK string or JSON `null` when no ticker matches.
+
+## Rust library
+
+Add the repository dependency and Tokio to your application:
+
+```toml
+[dependencies]
+sec-data-fetcher = { git = "https://github.com/SebastianBoehler/sec-data-fetcher" }
+tokio = { version = "1", features = ["macros", "rt"] }
+```
+
+Pin a `rev` for reproducible builds. This example selects one report before downloading:
+
+```rust
+use sec_data_fetcher::{SecClient, NaiveDate, extract_tables};
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = SecClient::with_rate_limit(std::env::var("SEC_USER_AGENT")?, 2)?;
+    let cik = client.cik_lookup("AAPL").await?.ok_or("Ticker not found")?;
+    let reports = client.get_reports(
+        &cik, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), &["10-K", "10-Q"],
+    ).await?;
+    let report = reports.first().ok_or("No matching report")?;
+    let html = client.fetch_filing(&report.url()?).await?;
+    println!("{} tables", extract_tables(&html).len());
+    Ok(())
+}
+```
+
+| API | Result |
+| --- | --- |
+| `cik_lookup(ticker)` | Optional validated, zero-padded `Cik` |
+| `get_company_data(&cik)` | Typed submissions and recent filing columns |
+| `get_company_facts(&cik)` | Typed facts grouped by taxonomy, concept and unit |
+| `get_reports(&cik, after, forms)` | Selected filing metadata with validated `url()` |
+| `fetch_filing(url)` | One document's text |
+| `extract_tables(html)` | `Vec<Vec<Vec<String>>>` of tables, rows and cells |
+| `parse_xml(xml)` | Ordered `XmlElement` tree with namespace URIs |
+| `extract_tables_from_filing_url(url)` | Download and extract tables |
+| `get_object_from_url(url)` | Download and parse XML |
+
+Async methods return `Result`; parsing XML can fail, while HTML follows HTML5 error recovery. Run `cargo doc --open` for local API documentation.
+
+## Data semantics and limits
+
+- Company facts preserve units, dates and accession provenance. They are **not a deduplicated time series**: periods can recur across filings and amendments. Integer JSON values retain 64-bit precision; decimal JSON values use floating point.
+- Tables preserve cell text and separate nested tables. Parent cells retain nested text. Rowspan/colspan and financial-statement semantics are not reconstructed.
+- XML retains text (including leading zeros), namespace URIs and mixed-content order. Prefix spelling, comments and processing instructions are omitted. DTDs are rejected and element depth is limited to 128. This is not an iXBRL or SGML statement parser.
+- Documents and parsed output still reside in memory. Download and process one document at a time for bounded workloads; this is not a streaming archive ingester.
+
+## SEC access
+
+Use a shared `SecClient` or its clones: they share connections and a paced request budget. Default is 10 requests/second; `with_rate_limit` or CLI `--requests-per-second` accepts 1–10. The SEC's limit applies **per user across all machines**, so coordinate separate clients and processes yourself.
+
+Requests time out after 30 seconds. There are no automatic retries; redirects and other non-success responses surface with their HTTP status. Document URLs must use HTTPS on `www.sec.gov` or `data.sec.gov`, without credentials or custom ports. `403` can reflect network or identification restrictions; `429` calls for a lower request rate.
+
+Rust can reduce local parsing overhead and process memory. It does not accelerate the SEC's publication schedule or bypass its access limits. See [SEC fair-access guidance](https://www.sec.gov/about/developer-resources) and [XBRL API coverage](https://www.sec.gov/search-filings/edgar-application-programming-interfaces).
+
+## Develop and contribute
+
+```sh
+cargo fmt --check
+cargo clippy --locked --all-targets -- -D warnings
+cargo test --locked
+SEC_USER_AGENT='YourApp you@your-domain.com' cargo run --locked --release --example live_smoke
+```
+
+Deterministic tests use local fixtures and a loopback HTTP server. The separate live smoke makes four SEC requests: ticker mapping, submissions, facts and one filing. CI checks supported toolchains and operating systems; a weekly live workflow checks upstream access and compatibility.
+
+See [contributing](CONTRIBUTING.md), [architecture](docs/architecture.md), [migration](docs/migration-v3.md), [security](SECURITY.md) and [changelog](CHANGELOG.md). Reproductions with a public accession and a small expected-output fixture are welcome.
 
 ## License
 
-[MIT](https://github.com/SebastianBoehler/sec-data-fetcher/blob/main/LICENSE) © 2024–2026 Sebastian Boehler. Independent open-source software; not affiliated with or endorsed by the SEC.
+[MIT](LICENSE) © 2024–2026 Sebastian Boehler. Independent open-source software; not affiliated with or endorsed by the SEC.

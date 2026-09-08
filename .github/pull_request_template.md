@@ -8,4 +8,4 @@ List the focused checks you ran. For parsing changes, include the fixture or pub
 
 ## Compatibility
 
-Does this affect public types, Node support or existing callers? Update the README/changelog when needed.
+Does this affect public types, minimum Rust version or existing callers? Update the README/changelog when needed.

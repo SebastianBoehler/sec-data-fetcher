@@ -1,0 +1,35 @@
+[package]
+name = "sec-data-fetcher"
+version = "3.0.0"
+edition = "2024"
+rust-version = "1.88"
+description = "SEC EDGAR filings and financial-data toolkit with an async Rust client and CLI"
+license = "MIT"
+repository = "https://github.com/SebastianBoehler/sec-data-fetcher"
+readme = "README.md"
+keywords = ["sec", "edgar", "finance", "xbrl", "filings"]
+categories = ["api-bindings", "command-line-utilities", "parser-implementations"]
+include = ["/src/**/*.rs", "/examples/*.rs", "/tests/**", "/Cargo.toml", "/Cargo.lock", "/README.md", "/LICENSE", "/CHANGELOG.md", "/docs/**", "/CONTRIBUTING.md", "/SECURITY.md"]
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["std", "serde"] }
+clap = { version = "4.6", features = ["derive", "env"] }
+reqwest = { version = "0.13.4", default-features = false, features = ["rustls", "json", "gzip", "deflate", "charset"] }
+# 0.21.1 recursively overflows on the excessive-depth regression.
+roxmltree = "0.20.0"
+scraper = { version = "0.27", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1.53", features = ["macros", "rt", "sync", "time"] }
+
+[dev-dependencies]
+tokio = { version = "1.53", features = ["test-util", "net", "io-util"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "debuginfo"
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.0.0 — 2026-09-08
+
+Full replacement with a Rust library and native CLI. Removed TypeScript sources, npm tooling and Node CI from the active tree.
+
+- Added typed SEC submissions and company facts, validated CIKs and filing URLs, shared request pacing, explicit HTTP errors and connection reuse.
+- Added CLI commands for lookup, submissions, facts, report selection, document downloads and offline HTML/XML parsing.
+- Changed report selection to metadata only, with explicit date filtering; download documents individually.
+- Preserved nested HTML table ownership and introduced ordered XML output with namespace URIs and text-preserving identifiers.
+- Added deterministic Rust/CLI tests, package verification, live SEC smoke and dependency maintenance.
+
+See [migration notes](docs/migration-v3.md). The previous npm release remains available separately; version 3 is not an npm package.
+
+
 ## 2.0.0 — 2026-09-08
 
 A maintenance release for the SEC EDGAR filings and financial-data toolkit.
