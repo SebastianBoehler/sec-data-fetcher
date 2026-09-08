@@ -96,6 +96,10 @@ Async methods return `Result`; parsing XML can fail, while HTML follows HTML5 er
 - XML retains text (including leading zeros), namespace URIs and mixed-content order. Prefix spelling, comments and processing instructions are omitted. DTDs are rejected and element depth is limited to 128. This is not an iXBRL or SGML statement parser.
 - Documents and parsed output still reside in memory. Download and process one document at a time for bounded workloads; this is not a streaming archive ingester.
 
+## Measured local performance
+
+On one 1 MB Apple filing, seven fresh-process runs on an M4 Max measured **8.43 ms** median table parsing and **13.72 MiB** peak process memory, versus **65.73 ms / 174.36 MiB** for npm 2.0.0 on Node 24. All 40 tables matched cell for cell. These results measure local work, not SEC delivery latency. See [methodology and reproduction](docs/performance.md).
+
 ## SEC access
 
 Use a shared `SecClient` or its clones: they share connections and a paced request budget. Default is 10 requests/second; `with_rate_limit` or CLI `--requests-per-second` accepts 1–10. The SEC's limit applies **per user across all machines**, so coordinate separate clients and processes yourself.
