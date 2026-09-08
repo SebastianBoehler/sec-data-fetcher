@@ -29,6 +29,7 @@ pub enum XmlNode {
 /// Parse well-formed XML. DTDs are disabled and output depth is limited to 128.
 /// Namespace URIs and text order are retained; comments and prefix spelling are not.
 pub fn parse_xml(content: &str) -> Result<XmlElement> {
+    validate_depth(content)?;
     let document = roxmltree::Document::parse(content)?;
     let root = document.root_element();
     let mut stack = vec![(root.children(), element(root))];
@@ -77,4 +78,34 @@ fn element(node: roxmltree::Node<'_, '_>) -> XmlElement {
             .collect(),
         children: Vec::new(),
     }
+}
+
+// Check depth without recursion before entering the DOM parser. A post-parse
+// check cannot protect the dependency's own recursive tokenizer stack.
+fn validate_depth(content: &str) -> Result<()> {
+    use xmlparser::{ElementEnd, Token, Tokenizer};
+    let mut depth = 0_usize;
+    for token in Tokenizer::from(content) {
+        match token.map_err(|error| Error::InvalidInput(error.to_string()))? {
+            Token::ElementStart { .. } => {
+                depth += 1;
+                if depth > 128 {
+                    return Err(Error::InvalidInput(
+                        "XML nesting exceeds 128 elements".into(),
+                    ));
+                }
+            }
+            Token::ElementEnd {
+                end: ElementEnd::Empty | ElementEnd::Close(..),
+                ..
+            } => {
+                depth = depth.saturating_sub(1);
+            }
+            Token::DtdStart { .. } | Token::EmptyDtd { .. } => {
+                return Err(Error::InvalidInput("XML DTDs are disabled".into()));
+            }
+            _ => {}
+        }
+    }
+    Ok(())
 }
