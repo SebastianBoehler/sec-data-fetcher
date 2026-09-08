@@ -16,10 +16,12 @@ export function extractTables(
 
     $(table)
       .find('tr')
+      .filter((_, row) => $(row).closest('table')[0] === table)
       .each((i, row) => {
         const rowData: Array<string> = [];
         $(row)
           .find('td, th')
+          .filter((_, cell) => $(cell).closest('tr')[0] === row)
           .each((i, cell) => {
             rowData.push($(cell).text().trim());
           });

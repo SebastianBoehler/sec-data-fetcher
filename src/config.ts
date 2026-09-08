@@ -11,7 +11,7 @@ export const createHttpClient = (
   maxRequests: number = 10,
   perMilliseconds: number = 1000,
 ) => {
-  return rateLimit(axios.create(), {
+  return rateLimit(axios.create({ timeout: 30_000 }), {
     maxRequests,
     perMilliseconds,
   });

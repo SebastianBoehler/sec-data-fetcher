@@ -4,9 +4,11 @@
     "sourceMap": true,
     "declaration": true,
     "module": "CommonJS",
-    "target": "ES6",
+    "target": "ES2022",
     "strict": true,
     "esModuleInterop": true
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }

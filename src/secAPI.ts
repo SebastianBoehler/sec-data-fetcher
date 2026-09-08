@@ -6,33 +6,22 @@ import { XMLParser } from 'fast-xml-parser';
 import { padCik } from './utils';
 import { extractTables } from './parsers/tableParser';
 
-export interface CompanyTicker {
-  cik: number;
-  name: string;
-  ticker: string;
-  exchange: string;
-}
-
-export interface Filing {
-  form: string;
-  cik: string;
-  primaryDocument: string;
-  filingDate: Date;
-  accessionNumber: string;
-  isXBRL: number;
-  act: string;
-  primaryDocDescription: string;
-  content?: string;
-}
-
-export interface FilingObject {
-  [key: string]: any;
-}
-
-export interface SECClientOptions {
-  userAgent: string;
-  maxRequestsPerSecond?: number;
-}
+import type {
+  CompanyTicker,
+  CompanySubmissions,
+  CompanyFacts,
+  Filing,
+  FilingObject,
+  SECClientOptions,
+} from './types';
+export type {
+  CompanyTicker,
+  CompanySubmissions,
+  CompanyFacts,
+  Filing,
+  FilingObject,
+  SECClientOptions,
+} from './types';
 
 export class SECClient {
   private http: AxiosInstance;
@@ -44,7 +33,21 @@ export class SECClient {
    */
   constructor(options: SECClientOptions) {
     const { userAgent, maxRequestsPerSecond = 10 } = options;
-    this.userAgent = userAgent;
+    if (typeof userAgent !== 'string' || !userAgent.trim()) {
+      throw new Error(
+        'userAgent is required; include your application name and contact email.',
+      );
+    }
+    if (
+      !Number.isInteger(maxRequestsPerSecond) ||
+      maxRequestsPerSecond < 1 ||
+      maxRequestsPerSecond > 10
+    ) {
+      throw new RangeError(
+        'maxRequestsPerSecond must be an integer from 1 to 10.',
+      );
+    }
+    this.userAgent = userAgent.trim();
     this.http = createHttpClient(maxRequestsPerSecond, 1000);
   }
 
@@ -54,8 +57,7 @@ export class SECClient {
    * @returns The CIK as a string padded to 10 digits, or null if not found.
    */
   public async cikLookup(ticker: string): Promise<string | null> {
-    const rndmUrlParam = Math.random().toString(36).substring(7);
-    const url = `https://www.sec.gov/files/company_tickers_exchange.json?time=${rndmUrlParam}`;
+    const url = 'https://www.sec.gov/files/company_tickers_exchange.json';
     const response = await this.http.get<{ fields: string[]; data: any[] }>(
       url,
       {
@@ -78,7 +80,7 @@ export class SECClient {
 
     const item = companies.find(
       (item: CompanyTicker) =>
-        item.ticker.toUpperCase() === ticker.toUpperCase(),
+        item.ticker.toUpperCase() === ticker.trim().toUpperCase(),
     );
 
     return item ? String(item.cik).padStart(10, '0') : null;
@@ -89,9 +91,9 @@ export class SECClient {
    * @param cik - The company's Central Index Key.
    * @returns An object containing the company data.
    */
-  public async getCompanyData(cik: string): Promise<any> {
-    const url = `https://data.sec.gov/submissions/CIK${cik}.json`;
-    const response = await this.http.get<any>(url, {
+  public async getCompanyData(cik: string): Promise<CompanySubmissions> {
+    const url = `https://data.sec.gov/submissions/CIK${padCik(cik)}.json`;
+    const response = await this.http.get<CompanySubmissions>(url, {
       headers: getHeaders('data.sec.gov', this.userAgent),
     });
 
@@ -113,12 +115,14 @@ export class SECClient {
     after: Date = new Date('2024-01-01'),
     forms: string[] = ['10-Q', '10-K', '8-K'],
   ): Promise<Filing[]> {
+    if (Number.isNaN(after.getTime()))
+      throw new TypeError('after must be a valid Date.');
     const latestFilings = await this.getCompanyData(cik);
     const { recent } = latestFilings.filings;
 
     const mapped: Filing[] = recent.form.map((form: string, index: number) => ({
       form,
-      cik,
+      cik: padCik(cik),
       primaryDocument: recent.primaryDocument[index],
       filingDate: new Date(recent.filingDate[index]),
       accessionNumber: recent.accessionNumber[index],
@@ -139,12 +143,10 @@ export class SECClient {
         );
         const cikNumber = parseInt(cik, 10);
         const filingUrl = `https://www.sec.gov/Archives/edgar/data/${cikNumber}/${accessionNumberNoDashes}/${filing.primaryDocument}`;
-        const response = await this.http.get<string>(filingUrl, {
-          headers: getHeaders('www.sec.gov', this.userAgent),
-        });
+        const content = await this.fetchFiling(filingUrl);
         return {
           ...filing,
-          content: response.data,
+          content,
         };
       }),
     );
@@ -157,9 +159,9 @@ export class SECClient {
    * @param cik - The company's Central Index Key.
    * @returns An object containing the company facts.
    */
-  public async getCompanyFacts(cik: string): Promise<any> {
-    const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
-    const response = await this.http.get<any>(url, {
+  public async getCompanyFacts(cik: string): Promise<CompanyFacts> {
+    const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${padCik(cik)}.json`;
+    const response = await this.http.get<CompanyFacts>(url, {
       headers: getHeaders('data.sec.gov', this.userAgent),
     });
     return response.data;
@@ -171,20 +173,11 @@ export class SECClient {
    * @returns The raw HTML content of the filing.
    */
   public async fetchFiling(url: string): Promise<string> {
-    try {
-      const response = await this.http.get<string>(url, {
-        headers: {
-          'User-Agent': this.userAgent,
-          'Accept-Encoding': 'gzip, deflate',
-          Host: 'www.sec.gov',
-        },
-      });
-      return response.data; // The raw HTML of the SEC filing
-    } catch (error) {
-      throw new Error(
-        `Failed to fetch SEC filing from URL: ${url}. Error: ${error}`,
-      );
-    }
+    const response = await this.http.get<string>(url, {
+      headers: getHeaders(new URL(url).host, this.userAgent),
+      responseType: 'text',
+    });
+    return response.data;
   }
 
   /**
@@ -218,6 +211,7 @@ export class SECClient {
    */
   public getObjectFromString(content: string): FilingObject {
     const parser = new XMLParser({
+      processEntities: false,
       ignoreDeclaration: true,
       ignoreAttributes: false,
       attributeNamePrefix: '',
@@ -235,12 +229,7 @@ export class SECClient {
    * @returns A structured object representing the filing.
    */
   public async getObjectFromUrl(url: string): Promise<FilingObject> {
-    const host = new URL(url).host;
-    const response = await this.http.get<string>(url, {
-      headers: getHeaders(host, this.userAgent),
-    });
-    const content = response.data;
-    return this.getObjectFromString(content);
+    return this.getObjectFromString(await this.fetchFiling(url));
   }
 
   // Additional methods can be added here following the same pattern

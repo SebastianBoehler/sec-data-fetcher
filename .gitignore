@@ -20,3 +20,7 @@ yarn-error.log*
 
 # Optional eslint cache
 .eslintcache
+
+# Package verification scratch space and release tarballs
+.package-test-*/
+*.tgz
