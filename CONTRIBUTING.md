@@ -40,7 +40,7 @@ Dependabot checks Cargo dependencies weekly and Actions monthly. The XML depende
 2. Run formatting, Clippy, tests, `cargo package --locked`, `cargo audit` and the live smoke. Check the minimum Rust toolchain too.
 3. Push and wait for CI on the exact release commit.
 4. Tag `vX.Y.Z` and create a GitHub release describing supported installation paths and breaking changes.
-5. Verify installation from that tag in a clean location.
+5. Verify installation from that tag in a clean location. Dispatch `Native binaries` on the release commit; attach its tested platform archives and SHA-256 checksums to the release. These archives are unsigned.
 
 The Rust crate is not currently published on crates.io. A future registry release needs ownership/authentication, inspection of `cargo package --list`, successful package verification, and a clean registry install after publication. Do not publish Node packages from this Rust tree.
 

@@ -1,0 +1,39 @@
+name: Native binaries
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: Swatinem/rust-cache@63fed3e2fecf6f7b51dc6f043341b79ef82a9ae7 # v2.9.2
+      - run: cargo test --locked
+      - run: cargo build --locked --release
+      - name: Smoke and package native executable
+        run: |
+          binary=sec-data-fetcher
+          if [[ "$RUNNER_OS" == Windows ]]; then binary=sec-data-fetcher.exe; fi
+          target/release/"$binary" --version
+          target/release/"$binary" tables --file tests/fixtures/tables.html > /dev/null
+          target/release/"$binary" xml --file tests/fixtures/document.xml > /dev/null
+          native_host=$(rustc -vV | sed -n 's/^host: //p')
+          mkdir -p native-package
+          cp target/release/"$binary" LICENSE native-package/
+          tar -czf "sec-data-fetcher-$native_host.tar.gz" -C native-package .
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: native-${{ matrix.os }}
+          path: sec-data-fetcher-*.tar.gz
+          if-no-files-found: error
+          retention-days: 14
